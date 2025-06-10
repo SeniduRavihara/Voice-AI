@@ -8,9 +8,13 @@ import {
   Send,
   User,
   Volume2,
+  X,
 } from "lucide-react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
 interface ImportantData {
   key: string;
@@ -248,7 +252,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   }
 
   return (
-    <div className="fixed top-6 right-6 w-80 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl">
+    <div className="fixed z-10 top-6 right-6 w-80 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl">
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -259,7 +263,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             onClick={onToggle}
             className="p-1 hover:bg-white/10 rounded transition-colors duration-200"
           >
-            ×
+            <X className="text-white" />
           </button>
         </div>
       </div>
@@ -316,12 +320,18 @@ const Header = () => {
 // Main App Component
 const VoiceAIApp: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
-  const [currentTranscript, setCurrentTranscript] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [userProfile, setUserProfile] = useState<Record<string, string>>({});
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -331,17 +341,19 @@ const VoiceAIApp: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    setIsListening(listening);
+  }, [listening]);
+
   const handleToggleListening = () => {
-    setIsListening(!isListening);
-    if (!isListening) {
-      // Simulate voice recognition
-      setTimeout(() => {
-        setCurrentTranscript(
-          "Hello, my dog's name is Max and I love hiking on weekends."
-        );
-      }, 2000);
+    if (isListening) {
+      SpeechRecognition.stopListening();
+      if (transcript.trim()) {
+        handleSendMessage(transcript);
+        resetTranscript();
+      }
     } else {
-      setCurrentTranscript("");
+      SpeechRecognition.startListening({ continuous: true });
     }
   };
 
@@ -352,7 +364,7 @@ const VoiceAIApp: React.FC = () => {
       { text: message, isUser: true, timestamp: Date.now() },
     ]);
     setIsListening(false);
-    setCurrentTranscript("");
+    resetTranscript();
     setIsTyping(true);
 
     // Simulate AI processing and response
@@ -442,9 +454,25 @@ const VoiceAIApp: React.FC = () => {
     return "I understand! Thanks for sharing that with me. I'm always listening for important details about you so I can provide more personalized assistance. What else would you like to discuss?";
   };
 
+  if (!browserSupportsSpeechRecognition) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p className="text-lg">
+            Your browser doesn't support speech recognition.
+          </p>
+          <p className="text-sm mt-2">
+            Please use a supported browser like Chrome to use voice features.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className='absolute inset-0 bg-[url(&apos;data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="1"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&apos;)] opacity-20'></div>
+      <div className='absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%239C92AC\" fill-opacity=\"0.1\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"1\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-20'></div>
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
         <Header />
@@ -489,16 +517,18 @@ const VoiceAIApp: React.FC = () => {
             isListening={isListening}
             onToggleListening={handleToggleListening}
             onSendMessage={handleSendMessage}
-            currentTranscript={currentTranscript}
+            currentTranscript={transcript}
           />
         </div>
       </div>
 
-      <KnowledgeBase
-        userProfile={userProfile}
-        isOpen={showKnowledgeBase}
-        onToggle={() => setShowKnowledgeBase(!showKnowledgeBase)}
-      />
+      <div className="">
+        <KnowledgeBase
+          userProfile={userProfile}
+          isOpen={showKnowledgeBase}
+          onToggle={() => setShowKnowledgeBase(!showKnowledgeBase)}
+        />
+      </div>
     </div>
   );
 };
