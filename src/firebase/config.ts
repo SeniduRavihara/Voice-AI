@@ -1,5 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -10,8 +14,11 @@ const firebaseConfig = {
   projectId: "voice-ai-513a2",
   storageBucket: "voice-ai-513a2.firebasestorage.app",
   messagingSenderId: "34144274870",
-  appId: "1:34144274870:web:02aafb22ab35654f60d917"
+  appId: "1:34144274870:web:02aafb22ab35654f60d917",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const auth = getAuth(app);
