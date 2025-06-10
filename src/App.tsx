@@ -131,6 +131,8 @@ const VoiceAIApp: React.FC = () => {
     message: string,
     importantData: ImportantData[]
   ): string => {
+    console.log(message);
+
     if (importantData.length > 0) {
       const dataDescriptions = importantData
         .map(
